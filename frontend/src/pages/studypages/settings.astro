@@ -1,0 +1,108 @@
+---
+import StudentLayout from "../../../layouts/StudentLayout.astro";
+import { getUserSettings, saveUserSettings } from "../../../lib/api";
+import { AuthError } from "../../../lib/auth";
+import type { UserSettings } from "../../../lib/api";
+
+let successMessage = '';
+let errorMessage = '';
+let existingSettings: UserSettings | null = null;
+
+try {
+    existingSettings = await getUserSettings(Astro.cookies);
+} catch (error) {
+    if (error instanceof AuthError) throw error;
+    // 404 means no settings yet — that's fine, show empty form
+}
+
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const username = formData.get('username')?.toString().trim();
+        const jlpt_level = formData.get('jlpt_level')?.toString();
+        const next_test_date = formData.get('next_test_date')?.toString();
+
+        if (!jlpt_level) {
+            errorMessage = 'Please select a JLPT level.';
+        } else {
+            existingSettings = await saveUserSettings({
+                username: username || '',
+                jlpt_level,
+                next_test_date: next_test_date || undefined,
+            }, Astro.cookies);
+            successMessage = 'Settings saved!';
+        }
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        errorMessage = error instanceof Error ? error.message : 'Failed to save settings.';
+    }
+}
+
+
+const TEST_DATES =["2026-07-05", "2026-12-06"]     
+const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
+---
+
+<StudentLayout>
+<div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-3xl font-semibold mb-8">Settings</h1>
+
+    {successMessage && (
+        <div class="bg-green-100 text-green-800 p-4 rounded mb-4" role="status">
+            {successMessage}
+        </div>
+    )}
+
+    {errorMessage && (
+        <div class="bg-red-100 text-red-800 p-4 rounded mb-4" role="alert">
+            {errorMessage}
+        </div>
+    )}
+
+    <form method="POST" class="space-y-6">
+        <div>
+            <label for="username" class="block text-sm font-medium mb-1">Display Name</label>
+            <input
+                type="text"
+                name="username"
+                id="username"
+                value={existingSettings?.username ?? ''}
+                class="w-full px-4 py-2 border rounded-lg"
+                placeholder="Choose a display name"
+            />
+        </div>
+
+        <div>
+            <label for="jlpt_level" class="block text-sm font-medium mb-1">JLPT Target Level</label>
+            <select name="jlpt_level" id="jlpt_level" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">Select your target level</option>
+                {JLPT_LEVELS.map(level => (
+                    <option value={level} selected={existingSettings?.jlpt_level === level}>
+                        {level}
+                    </option>
+                ))}
+            </select>
+        </div>
+
+        <div>
+            <label for="next_test_date" class="block text-sm font-medium mb-1">Next Test Date</label>
+            
+            <select name="next_test_date" id="next_test_date" class="w-full px-4 py-2 border rounded-lg">
+                <option value="">Select your test date</option>
+                {TEST_DATES.map(dates => (
+                    <option value={dates} selected={existingSettings?.next_test_date === dates}>
+                        {dates}
+                    </option>
+                ))}
+            </select>
+        </div>
+
+        <button
+            type="submit"
+            class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-lg font-medium transition-colors"
+        >
+            Save Settings
+        </button>
+    </form>
+</div>
+</StudentLayout>

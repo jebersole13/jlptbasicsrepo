@@ -1,0 +1,132 @@
+---
+import StudentLayout from "../../../layouts/StudentLayout.astro";
+import { getStudyLogs, deleteStudyLog } from "../../../lib/api";
+import { AuthError } from "../../../lib/auth";
+import type { StudyLog } from "../../../lib/api";
+
+let successMessage = '';
+let errorMessage = '';
+
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const action = formData.get('action')?.toString();
+        const logId = parseInt(formData.get('log_id')?.toString() ?? '');
+
+        if (action === 'delete' && !isNaN(logId)) {
+            await deleteStudyLog(logId, Astro.cookies);
+            successMessage = 'Log deleted.';
+        }
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        errorMessage = error instanceof Error ? error.message : 'Failed to delete log.';
+    }
+}
+
+let logs: StudyLog[] = [];
+try {
+    logs = await getStudyLogs(Astro.cookies);
+} catch (error) {
+    if (error instanceof AuthError) throw error;
+    errorMessage = 'Failed to load study logs.';
+}
+
+function formatDuration(seconds: number | null): string {
+    if (!seconds) return '0 minutes';
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return sec > 0 ? `${min} min ${sec} sec` : `${min} minutes`;
+}
+---
+
+<StudentLayout>
+<div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-semibold mb-8">Study Logs</h1>
+
+    {successMessage && (
+        <div class="bg-green-100 text-green-800 p-4 rounded mb-4" role="status">
+            {successMessage}
+        </div>
+    )}
+
+    {errorMessage && (
+        <div class="bg-red-100 text-red-800 p-4 rounded mb-4" role="alert">
+            {errorMessage}
+        </div>
+    )}
+
+    {logs.length === 0 ? (
+        <p class="text-gray-500">No study sessions yet. Head to <a href="/studypage/study" class="text-blue-600 hover:underline">Study Time</a> to get started!</p>
+    ) : (
+        <div class="space-y-4">
+            {logs.map((log) => (
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-semibold">{log.topic_display}</h3>
+                            <p class="text-sm text-gray-500 mt-0.5">
+                                {new Date(log.date_studied).toLocaleDateString('en-US', {
+                                    year: 'numeric', month: 'long', day: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                })}
+                            </p>
+                            <p class="text-gray-600 mt-1">Duration: {formatDuration(log.duration)}</p>
+                        </div>
+                        <button
+                            class="text-blue-600 hover:text-blue-800 md:text-base text-sm expand-btn"
+                            data-log-id={log.id}
+                            aria-expanded="false"
+                        >
+                            Open Logs ▼
+                        </button>
+                    </div>
+
+                    <div class="expanded-content hidden border-t pt-4 mt-4" data-log-id={log.id}>
+                        {log.learning_logs && log.learning_logs.length > 0 ? (
+                            <div class="space-y-3">
+                                <h4 class="font-medium text-gray-700">Study Logs</h4>
+                                {log.learning_logs.map((entry) => (
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <p class="text-gray-700 whitespace-pre-wrap">{entry.text}</p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {new Date(entry.date_logged).toLocaleString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p class="text-gray-400 italic text-sm">No logs for this session.</p>
+                        )}
+
+                        <form method="POST" class="mt-4">
+                            <input type="hidden" name="action" value="delete" />
+                            <input type="hidden" name="log_id" value={log.id} />
+                            <button
+                                type="submit"
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
+                                onclick="return confirm('Delete this log? This cannot be undone.')"
+                            >
+                                Delete Log
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            ))}
+        </div>
+    )}
+</div>
+{ /** */}
+<script>
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const logId = (btn as HTMLElement).dataset.logId;
+            const content = document.querySelector<HTMLElement>(`.expanded-content[data-log-id="${logId}"]`);
+            if (!content) return;
+
+            const isHidden = content.classList.toggle('hidden');
+            btn.textContent = isHidden ? 'Open Logs ▼' : 'Close Logs ▲';
+            btn.setAttribute('aria-expanded', String(!isHidden));
+        });
+    });
+</script>
+</StudentLayout>

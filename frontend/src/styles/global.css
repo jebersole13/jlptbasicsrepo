@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@plugin "daisyui";
+body.summer { background-image: url('/cherry2.gif'); }
+body.winter { background-image: url('/fatbeard-final-shirakawa.gif'); }
+calendar-date::part(container) {
+    width: min(420px, 90%)
+}
+
+calendar-month::part(table) {
+    width: 100%;
+}
+
+calendar-month::part(button) {
+    width: clamp(32px, 11vw, 48px);
+    height: clamp(32px, 11vw, 48px);
+    font-size: clamp(0.75rem, 2.5vw, 1rem);
+}

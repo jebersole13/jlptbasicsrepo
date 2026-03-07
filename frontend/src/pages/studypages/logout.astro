@@ -1,0 +1,11 @@
+---
+
+
+import { apiLogout } from "../../../lib/auth";
+if (Astro.request.method === 'POST') {
+    await apiLogout(Astro.cookies);
+    return Astro.redirect('/login');
+}
+
+return Astro.redirect('/studypage/progressdashboard');
+---

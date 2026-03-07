@@ -1,0 +1,93 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { resetPassword } from '../../lib/api';
+
+const { token } = Astro.params;
+let errorMessage = '';
+
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const new_password = formData.get('new_password') as string;
+        const confirm_password = formData.get('confirm_password') as string;
+        
+        if (!new_password || !confirm_password) {
+            errorMessage = 'Both password fields are required';
+        } else if (new_password !== confirm_password) {
+            errorMessage = 'Passwords do not match';
+        } else if (!token) {
+            errorMessage = 'Invalid reset link (missing token)';
+        } else {
+            // Your API call
+            await resetPassword({ 
+                token, 
+                new_password, 
+                confirm_password 
+            });
+            
+            return Astro.redirect('/login?reset=success');
+        }
+    } catch (error) {
+        errorMessage = error instanceof Error ? error.message : 'Password reset failed';
+    }
+}
+
+// Kick them out if the URL doesn't have a token
+if (!token) {
+    return Astro.redirect('/forgot');
+}
+---
+
+<Layout>
+  <div class='p-10 md:m-10'>  
+    <h1 class="text-center font-bold text-5xl">Reset Password</h1>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-pink-200 py-8 px-4 shadow-2xl sm:rounded-lg sm:px-10">
+            
+            {errorMessage && (
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">
+                    {errorMessage}
+                </div>
+            )}
+
+            <form method="POST">
+                <div class="space-y-4">
+                    <label class="block">
+                        New Password:
+                        <input 
+                            type="password" 
+                            name="new_password" 
+                            required 
+                            class="bg-white block w-full px-3 py-2 border border-gray-700 rounded" 
+                            minlength="8" 
+                        />
+ <input type="checkbox" name="" id=""> Show Password
+
+                    </label>
+                    
+                    <label class="block">
+                        Confirm Password:
+                        <input 
+                            type="password" 
+                            name="confirm_password" 
+                            required 
+                            class="bg-white block w-full px-3 py-2 border border-gray-700 rounded" 
+                            minlength="8" 
+                        />
+ <input type="checkbox" name="" id=""> Show Password
+
+                    </label>
+                    
+                    <button 
+                        type="submit" 
+                        class="bg-blue-600 hover:bg-blue-500 text-white w-full py-2 px-4 rounded-md cursor-pointer font-medium"
+                    >
+                        Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+</Layout>
+<script  src="../../lib/hideShow.ts">

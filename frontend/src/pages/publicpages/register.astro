@@ -1,0 +1,119 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { register } from "../../lib/api";
+
+
+const errors = {
+    email:"",
+    password: "",
+    passwordConfirmed: "" }
+if (Astro.request.method === "POST") {
+    try {
+        const data = await Astro.request.formData()
+        
+        const email = data.get("email") as string
+        const password = data.get("password") as string
+        const passwordConfirmed = data.get("password_confirm") as string  
+
+        if (!email || !email.includes('@')) {
+            errors.email = "Please enter a valid email."
+        }
+        if (!password || password.length < 8) {
+            errors.password = "Password must be at least 8 characters long."
+        }
+        if (!passwordConfirmed || passwordConfirmed !== password) {
+            errors.passwordConfirmed = "Passwords do not match."
+        }
+
+        const hasErrors = Object.values(errors).some(err => err !== "")
+
+        if (!hasErrors) {
+             await register({
+            
+                email: email,
+                password: password
+            })
+
+               return Astro.redirect("/login")
+        } 
+    } 
+    catch (error) {
+        if (error instanceof Error) {
+            console.error(error.message);
+ console.error("Full error:", error);
+            errors.email = "Registration failed. Please try again.";
+        }
+    }
+}
+
+---
+
+<Layout>
+<div class='p-10 md:m-10'>  
+
+<h1 class="text-center font-bold text-5xl">Registration</h1>
+<div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-amber-200 py-8 px-4 shadow-2xl rounded-lg sm:px-10">
+        <form method="POST" action="" enctype="application/x-www-form-urlencoded" id="regForm" ><div class="mt-7">
+           
+
+<div class="mt-5">
+            
+            <label for="email">Email: <input type="email" name="email" id="email" placeholder="email@example.com" required class="bg-white appearance-none block w-full px-3 py-2 border border-gray-700 rounded "></label>
+        
+                    {errors.email && <p>{errors.email}</p>}
+
+        </div>
+
+<div class="mt-5">
+    <label for="password">Password:</label>
+    <div class="relative w-full">
+        <input 
+            type="password" 
+            minlength="10" 
+            name="password" 
+            id="passWord" 
+            required 
+            class="bg-white appearance-none block w-full px-3 py-2 pr-10 border border-gray-700 rounded"
+        >
+<input type="checkbox" name="" id="show_password"> Show Password
+    </div>
+    {errors.password && <p>{errors.password}</p>}
+</div>
+
+<div class="mt-2">
+    <label for="password_confirm">Confirm Password:</label>
+    <div class="relative w-full">
+        <input 
+            type="password" 
+            minlength="10" 
+            name="password_confirm" 
+            id="password_confirm" 
+            required  
+            class="bg-white appearance-none block w-full px-3 py-2 pr-10 border border-gray-700 rounded"
+        >
+ <input type="checkbox" name="" id=""> Show Password
+    </div>
+    {errors.passwordConfirmed && <p>{errors.passwordConfirmed}</p>}
+</div>
+
+
+        <div class="mt-7">
+    
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 active:bg-indigo-700 text-white w-full justify-center py-2 px-4 border text-sm font-medium rounded-md cursor-pointer ">Register</button>
+    
+</div>
+<div class="mt-5">
+    <p class="text-white text-lg">Already have an account?</p>
+    <a class=" decoration-0 text-blue-800 hover:text-blue-950 text-lg " href="/login">Login Here</a>
+</div>
+    </form>
+
+    </div>
+</div>
+
+
+</div>
+</Layout>
+<script  src="../../lib/hideShow.ts">
+</script>

@@ -1,0 +1,130 @@
+---
+import Calendar from '../../../components/calendar.astro';
+import StudentLayout from '../../../layouts/StudentLayout.astro';
+import { getUserSettings, getStudyLogs, getStudyStatistics } from '../../../lib/api';
+import { AuthError } from '../../../lib/auth';
+import type { UserSettings, StudyLog, StudyStatistics } from '../../../lib/api';
+
+// Fetch all three in parallel — no reason to wait sequentially
+const [settingsResult, logsResult, statsResult] = await Promise.allSettled([
+    getUserSettings(Astro.cookies),
+    getStudyLogs(Astro.cookies),
+    getStudyStatistics(Astro.cookies),
+]);
+
+// AuthError from any call should bubble up to middleware for redirect
+for (const result of [settingsResult, logsResult, statsResult]) {
+    if (result.status === 'rejected' && result.reason instanceof AuthError) {
+        throw result.reason;
+    }
+}
+
+const userSettings: UserSettings | null = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
+const studyLogs: StudyLog[] = logsResult.status === 'fulfilled' ? logsResult.value : [];
+const statistics: StudyStatistics | null = statsResult.status === 'fulfilled' ? statsResult.value : null;
+
+// Determine countdown target date
+const today = new Date();
+const summerTest = new Date('2026-07-05');
+const winterTest = new Date('2026-12-06');
+
+let targetDate: Date;
+if (userSettings?.next_test_date) {
+    targetDate = new Date(userSettings.next_test_date);
+} else {
+    targetDate = today < summerTest ? summerTest : winterTest;
+}
+
+// Dates the user studied (for calendar highlighting)
+const studiedDates = studyLogs.map(log => log.date_studied.split('T')[0]);
+
+// Progress bars
+const GOAL_HOURS = 100;
+const progressData = statistics
+    ? Object.entries(statistics).map(([key, data]) => ({
+        key,
+        label: data.label,
+        hours: Math.round((data.total_minutes / 60) * 10) / 10,
+       percentage: Math.min((data.total_minutes / (GOAL_HOURS * 60)) * 100, 100),
+        sessionCount: data.session_count,
+    }))
+    : [];
+---
+
+<StudentLayout>
+
+    <div class="max-w-6xl mx-auto p-6 space-y-8">
+<div class="bg-white rounded-2xl p-8">
+<h1 class="text-3xl font-bold text-center">Ready to study {userSettings?.username}?</h1>
+
+</div>
+    <!-- Countdown -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+
+        <h2 class="text-2xl font-bold text-center mb-2">Your next test date</h2>
+        <p class="text-center md:text-5xl text-2xl text-gray-900 font-semibold mb-4">
+            {targetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
+        <div class="grid grid-cols-4 gap-4 max-w-2xl mx-auto">
+            {['days', 'hours', 'minutes', 'seconds'].map(unit => (
+                <div class="bg-gray-100 rounded-lg p-4 text-center">
+                    <div class="md:text-4xl text-shadow-2xs font-bold" id={unit}>--</div>
+                    <div class=" md:text-base text-xs font-semibold capitalize">{unit}</div>
+                </div>
+            ))}
+        </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-center mb-4">Study Calendar</h2>
+        <div class="flex justify-center">
+        
+        <Calendar/>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-center mb-6">Study Progress</h2>
+        {progressData.length === 0 ? (
+            <p class="text-center text-gray-500">No study sessions yet. Start studying to track your progress!</p>
+        ) : (
+            <div class="space-y-6 max-w-4xl mx-auto">
+                {progressData.map(topic => (
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold">{topic.label}</span>
+                            <span class="text-sm text-gray-500">
+                                {topic.hours}h / {GOAL_HOURS}h &mdash; {topic.sessionCount} sessions
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-5">
+                            <div
+                                class="bg-blue-600 h-5 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                                style={`width: ${Math.max(topic.percentage, 2)}%`}
+                            >
+                                {topic.percentage > 10 && (
+                                    <span class="text-white text-xs font-medium">
+                                        {Math.round(topic.percentage)}%
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+    </div>
+</div>
+
+<script type="module" src="https://unpkg.com/cally"></script>
+
+<div id="dashboard-data" 
+    data-target-date={targetDate.toISOString()} 
+    data-studied-dates={JSON.stringify(studiedDates)}
+    data-test-dates={JSON.stringify(['2026-07-05', '2026-12-06'])}
+    style="display:none">
+</div>
+<script src="../../../lib/dashboard.ts"></script>
+</StudentLayout>

@@ -1,0 +1,66 @@
+---
+import { forgotPassword } from "../../lib/api";
+
+import Layout from "../../layouts/Layout.astro";
+
+
+let errorMessage = '';
+let successMessage = '';
+
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const email = formData.get('email') as string;
+        
+        if (!email) {
+            errorMessage = 'Email is required';
+        } else {
+            await forgotPassword(email);
+            successMessage = 'Password reset link sent! Check your email.';
+        }
+    } catch (error) {
+        errorMessage = error instanceof Error ? error.message : 'Failed to send reset email';
+    }
+}
+
+---
+
+<Layout>
+
+<div class='p-10 md:m-10'>  
+
+<h1 class="text-center font-bold text-5xl">Forgot Password?</h1>
+<div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-pink-200 py-8 px-4 shadow-2xl rounded-lg sm:px-10">
+        <form method="POST" action=""  >
+        <div class="mt-5">
+            {successMessage && (
+        <div class="success">{successMessage}</div>
+    )}
+    
+    {errorMessage && (
+        <div class="error">{errorMessage}</div>
+    )}
+            <label for="">Email:
+            
+                <input type="email" name="email" required class="bg-white appearance-none block w-full px-3 py-2 border border-gray-700 rounded "/>
+           
+
+           
+            </label>
+        </div>
+
+        <div class="mt-7">
+    
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 active:bg-indigo-700 text-white w-full justify-center py-2 px-4 border text-sm font-medium rounded-md cursor-pointer ">Reset Password</button>
+    
+</div>
+    </form>
+
+    </div>
+</div>
+
+
+</div>
+
+</Layout>
