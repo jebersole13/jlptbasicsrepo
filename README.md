@@ -36,11 +36,11 @@ Happy Studying!
 
 ```
 /
-├── frontend/          # Astro SSR application
+├── frontend/          
 │   ├── src/
 │   │   ├── components/
 │   │   ├── layouts/
-│   │   ├── lib/           # API client, auth helpers, countdown logic
+│   │   ├── lib/           
 │   │   ├── pages/
 │   │   │   ├── login/
 │   │   │   ├── registration/
@@ -54,13 +54,13 @@ Happy Studying!
 │   │   └── styles/
 │   └── astro.config.mts
 │
-└── backend/           # Django REST API
+└── backend/           
     ├── countdownstudent/
     │   ├── models.py
     │   ├── serializers.py
     │   ├── views.py
     │   ├── urls.py
-    │   └── authentication.py  # Custom JWT cookie auth
+    │   └── authentication.py  
     └── jlptcountdownstudy/
         ├── settings.py
         └── urls.py
