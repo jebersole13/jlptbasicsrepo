@@ -19,15 +19,15 @@ Happy Studying!
 | Frontend | Astro, Tailwind CSS, DaisyUI, TypeScript |
 | Backend | Django, Django REST Framework |
 | Database | PostgreSQL |
-| Email | Mailgun (via django-anymail) |
+
 
 ---
 
 ## Features
 
 - **Countdown timer** — tracks time until the next JLPT exam date (summer / winter)
+- **Goal Setting** - Helps you set, track, and stick to goals in a customizable time frame.
 - **Study session logging** — log sessions by topic (Grammar, Kanji, Vocabulary, Listening, Reading) with a built-in timer (free run, set time, or Pomodoro)
-- **Progress dashboard** — visual progress bars per topic, study calendar with highlighted dates
 - **Daily idiom** — a rotating Japanese idiom on the landing page
 
 ---
